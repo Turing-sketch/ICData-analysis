@@ -106,3 +106,64 @@ ax.grid(axis="y", alpha=0.3, linestyle="--")
 plt.tight_layout()
 plt.savefig("hour_distribution.png", dpi=150)
 print(f"\n>>> 柱状图已保存: hour_distribution.png")
+print("\n" + "=" * 60)
+print("任务3：线路站点分析")
+print("=" * 60)
+
+def analyze_route_stops(df, route_col='线路号', stops_col='ride_stops'):
+    """
+    计算各线路乘客的平均搭乘站点数及其标准差。
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        预处理后的数据集
+    route_col : str
+        线路号列名
+    stops_col : str
+        搭乘站点数列名
+
+    Returns
+    -------
+    pd.DataFrame
+        包含列：线路号、mean_stops、std_stops，按 mean_stops 降序排列
+    """
+    # 按线路号分组，计算搭乘站点数的均值和标准差
+    result = df.groupby(route_col)[stops_col].agg(["mean", "std"]).reset_index()
+    # 重命名列
+    result.columns = [route_col, "mean_stops", "std_stops"]
+    # 按均值降序排列
+    result = result.sort_values("mean_stops", ascending=False).reset_index(drop=True)
+    return result
+
+# 调用函数（使用刷卡类型=0的子集）
+route_stats = analyze_route_stops(df_card)
+print("\n>>> 各线路平均搭乘站点数（前10行）：")
+print(route_stats.head(10))
+
+# seaborn 水平条形图：取均值最高的前15条线路
+top15 = route_stats.head(15)
+
+fig, ax = plt.subplots(figsize=(10, 8))
+# 使用 seaborn barplot，水平方向，带标准差误差棒
+sns.barplot(
+    data=top15, y=top15[route_stats.columns[0]].astype(str),
+    x="mean_stops", palette="Blues_d",
+    errorbar=("ci", 68), capsize=0.3, ax=ax
+)
+
+# 手动添加误差棒（兼容不同 seaborn 版本）
+for i, (_, row) in enumerate(top15.iterrows()):
+    mean_val = row["mean_stops"]
+    std_val = row["std_stops"]
+    ax.errorbar(mean_val, i, xerr=std_val, capsize=0.3, color="black", linewidth=0.8)
+
+ax.set_title("Top 15 Routes by Average Ride Stops", fontsize=14, fontweight="bold")
+ax.set_xlabel("Average Ride Stops")
+ax.set_ylabel("Route Number")
+ax.set_xlim(0, top15["mean_stops"].max() * 1.2)
+ax.grid(axis="x", alpha=0.3, linestyle="--")
+plt.tight_layout()
+plt.savefig("route_stops.png", dpi=150)
+print(f"\n>>> 条形图已保存: route_stops.png")
+
