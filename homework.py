@@ -201,3 +201,39 @@ max_15min = counts_15min.max()
 phf15 = peak_count / (4 * max_15min)
 print(f"\n>>> 最大15分钟刷卡量: {max_15min}")
 print(f"   PHF15 = {peak_count} / (4 × {max_15min}) = {phf15:.4f}")
+print("\n" + "=" * 60)
+print("任务5：线路驾驶员信息导出")
+print("=" * 60)
+
+# 创建输出目录
+output_dir = "线路驾驶员信息"
+os.makedirs(output_dir, exist_ok=True)
+
+# 选取服务人次最多的前20条线路
+top_20_routes = df_card.groupby("线路号").size().sort_values(ascending=False).head(20).index.tolist()
+
+exported_files = []
+for route in top_20_routes:
+    # 筛选该线路的数据
+    route_data = df_card[df_card["线路号"] == route]
+    # 按驾驶员编号分组，统计每人服务人次
+    driver_stats = route_data.groupby("驾驶员编号").size().reset_index(name="service_count")
+    driver_stats = driver_stats.sort_values("service_count", ascending=False)
+    driver_stats["驾驶员编号"] = driver_stats["驾驶员编号"].astype(int)
+
+    # 写入txt文件
+    filename = os.path.join(output_dir, f"线路{route}_驾驶员信息.txt")
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write(f"线路号: {route}\n")
+        f.write(f"线路总服务人次: {len(route_data)}\n")
+        f.write(f"驾驶员总数: {len(driver_stats)}\n")
+        f.write("=" * 40 + "\n")
+        f.write(f"{'驾驶员编号':<12} {'服务人次':>8}\n")
+        f.write("-" * 40 + "\n")
+        for _, row in driver_stats.iterrows():
+            f.write(f"{row['驾驶员编号']:<12} {row['service_count']:>8}\n")
+    exported_files.append(filename)
+
+print(f"\n>>> 已导出 {len(exported_files)} 个线路驾驶员信息文件：")
+for f in exported_files:
+    print(f"   {f}")
