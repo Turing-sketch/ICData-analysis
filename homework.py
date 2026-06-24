@@ -167,3 +167,37 @@ plt.tight_layout()
 plt.savefig("route_stops.png", dpi=150)
 print(f"\n>>> 条形图已保存: route_stops.png")
 
+print("\n" + "=" * 60)
+print("任务4：高峰小时系数（PHF）计算")
+print("=" * 60)
+
+# 4.1 高峰小时识别：统计全天各小时刷卡量，找出刷卡量最大的小时
+hour_counts = df_card.groupby("hour").size()
+peak_hour = hour_counts.idxmax()
+peak_count = hour_counts.max()
+print(f"\n>>> 高峰小时为 {peak_hour}:00-{peak_hour+1}:00，刷卡量 {peak_count} 次")
+
+# 筛选高峰小时数据
+peak_df = df_card[df_card["hour"] == peak_hour].copy()
+# 提取分钟字段（整数 0~59），用于分钟粒度聚合
+peak_df["minute"] = peak_df["交易时间"].dt.minute
+
+# 4.2 5分钟粒度统计：以5分钟为窗口聚合，找出最大5分钟刷卡量
+# 将分钟按 floor(minute / 5) * 5 分组
+peak_df["min5_bin"] = (peak_df["minute"] // 5) * 5
+counts_5min = peak_df.groupby("min5_bin").size()
+max_5min = counts_5min.max()
+# PHF5 = 高峰小时刷卡量 / (12 × 高峰小时内最大5分钟刷卡量)
+phf5 = peak_count / (12 * max_5min)
+print(f"\n>>> 最大5分钟刷卡量: {max_5min}")
+print(f"   PHF5 = {peak_count} / (12 × {max_5min}) = {phf5:.4f}")
+
+# 4.3 15分钟粒度统计：以15分钟为窗口聚合，找出最大15分钟刷卡量
+# 将分钟按 floor(minute / 15) * 15 分组
+peak_df["min15_bin"] = (peak_df["minute"] // 15) * 15
+counts_15min = peak_df.groupby("min15_bin").size()
+max_15min = counts_15min.max()
+# PHF15 = 高峰小时刷卡量 / (4 × 高峰小时内最大15分钟刷卡量)
+phf15 = peak_count / (4 * max_15min)
+print(f"\n>>> 最大15分钟刷卡量: {max_15min}")
+print(f"   PHF15 = {peak_count} / (4 × {max_15min}) = {phf15:.4f}")
