@@ -146,10 +146,8 @@ top15 = route_stats.head(15)
 
 fig, ax = plt.subplots(figsize=(10, 8))
 # 使用 seaborn barplot，水平方向，带标准差误差棒
-sns.barplot(
-    data=top15, y=top15[route_stats.columns[0]].astype(str),
-    x="mean_stops", palette="Blues_d",
-    errorbar=("ci", 68), capsize=0.3, ax=ax
+sns.barplot(data=top15, y=top15[route_stats.columns[0]].astype(str),
+    x="mean_stops", hue=top15[route_stats.columns[0]].astype(str), palette="Blues_d", errorbar=("ci", 68), capsize=0.3, ax=ax, legend=False
 )
 
 # 手动添加误差棒（兼容不同 seaborn 版本）
@@ -237,3 +235,74 @@ for route in top_20_routes:
 print(f"\n>>> 已导出 {len(exported_files)} 个线路驾驶员信息文件：")
 for f in exported_files:
     print(f"   {f}")
+print("\n" + "=" * 60)
+print("任务6：服务绩效排名与热力图")
+print("=" * 60)
+
+# 6.1 排名统计：以搭乘乘客人次为标准
+top_drivers = df_card.groupby("驾驶员编号").size().sort_values(ascending=False).head(10)
+top_routes = df_card.groupby("线路号").size().sort_values(ascending=False).head(10)
+top_stations = df_card.groupby("上车站点").size().sort_values(ascending=False).head(10)
+top_vehicles = df_card.groupby("车辆编号").size().sort_values(ascending=False).head(10)
+
+print("\n>>> Top 10 驾驶员（服务人次）：")
+for i, (idx, val) in enumerate(top_drivers.items(), 1):
+    print(f"   Top{i}: 驾驶员 {int(idx)} - {val} 人次")
+
+print("\n>>> Top 10 线路（服务人次）：")
+for i, (idx, val) in enumerate(top_routes.items(), 1):
+    print(f"   Top{i}: 线路 {idx} - {val} 人次")
+
+print("\n>>> Top 10 上车站点（服务人次）：")
+for i, (idx, val) in enumerate(top_stations.items(), 1):
+    print(f"   Top{i}: 站点 {idx} - {val} 人次")
+
+print("\n>>> Top 10 车辆（服务人次）：")
+for i, (idx, val) in enumerate(top_vehicles.items(), 1):
+    print(f"   Top{i}: 车辆 {int(idx)} - {val} 人次")
+
+# 6.2 热力图可视化 (seaborn heatmap)
+# 构造 4×10 的数据矩阵
+heatmap_data = np.array([
+    top_drivers.values,
+    top_routes.values,
+    top_stations.values,
+    top_vehicles.values
+])
+
+# 行标签和列标签
+row_labels = ["Driver", "Route", "Boarding Station", "Vehicle"]
+col_labels = [f"Top{i}" for i in range(1, 11)]
+
+fig, ax = plt.subplots(figsize=(14, 6))
+sns.heatmap(
+    heatmap_data, annot=True, fmt="d", cmap="YlOrRd",
+    xticklabels=col_labels, yticklabels=row_labels,
+    linewidths=0.5, linecolor="white", ax=ax,
+    cbar_kws={"label": "Service Count"}
+)
+ax.set_title("Service Performance Ranking Heatmap\n(Top 10 Entities by Passenger Count)",
+             fontsize=14, fontweight="bold")
+ax.set_xlabel("Rank")
+# x轴标签旋转0度
+ax.set_xticklabels(col_labels, rotation=0)
+plt.tight_layout()
+plt.savefig("performance_heatmap.png", dpi=150, bbox_inches="tight")
+print(f"\n>>> 热力图已保存: performance_heatmap.png")
+
+# 6.3 结论说明（不少于50字）
+conclusion = """
+>>> 结论说明：
+从热力图可以看出：1）驾驶员0号服务人次高达6484，远超其他驾驶员，可能代表系统中
+未分配驾驶员的默认记录或数据采集异常，需要进一步核实；2）线路46003客流异常突出
+（7127人次），是第二名线路1091（4893人次）的约1.5倍，说明该线路可能是城市主干线
+或途经核心通勤区域；3）上车站点Top10分布较为均匀（5700~7776之间），说明客流在
+多个主要站点间分散；4）车辆0号服务人次高达11774，与驾驶员0号类似，可能代表系统
+默认值或缺失数据，在实际运营分析中应予以排除或单独标注。
+"""
+print(conclusion)
+
+print("\n" + "=" * 60)
+print("所有分析任务完成!")
+print("=" * 60)
+
